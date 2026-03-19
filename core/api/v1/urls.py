@@ -1,0 +1,9 @@
+from ninja import Router
+
+from core.api.v1.customers.handlers import router as customer_router
+
+router = Router(tags=["v1"])
+
+router.add_router("customers/", customer_router)
+# router.add_router("events/", event_router)
+# router.add_router("booking/", booking_router)

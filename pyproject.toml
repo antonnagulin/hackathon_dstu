@@ -1,0 +1,68 @@
+[project]
+name = "book-android-app"
+version = "0.1.0"
+description = ""
+authors = [
+    {name = "antonnagulin",email = "nagulin03@mail.ru"}
+]
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "django (>=6.0,<7.0)",
+    "django-rest-framework (>=0.1.0,<0.2.0)",
+    "psycopg (>=3.3.2,<4.0.0)",
+    "djangorestframework-simplejwt (>=5.5.1,<6.0.0)",
+    "python-decouple (>=3.8,<4.0)",
+    "rest-framework-simplejwt (>=0.0.2,<0.0.3)",
+    "ruff (>=0.14.10,<0.15.0)",
+    "drf-spectacular (>=0.29.0,<0.30.0)",
+    "requests (>=2.32.5,<3.0.0)",
+    "django-ninja (==1.5.1)",
+    "pydantic[email] (>=2.12.5,<3.0.0)",
+    "django-ninja-jwt (>=5.4.3,<6.0.0)",
+    "pytest (>=9.0.2,<10.0.0)",
+    "pytest-django (>=4.11.1,<5.0.0)",
+    "coverage (>=7.13.2,<8.0.0)",
+    "passlib (>=1.7.4,<2.0.0)",
+    "redis (>=7.2.1,<8.0.0)",
+    "django-redis (>=6.0.0,<7.0.0)",
+    "black (>=26.3.0,<27.0.0)",
+    "pre-commit (>=4.5.1,<5.0.0)",
+]
+
+
+[build-system]
+requires = ["poetry-core>=2.0.0,<3.0.0"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.ruff]
+line-length = 88
+target-version = "py312"
+
+# Проверяем только ошибки PEP8, связанные с комментариями
+select = [
+    "E",   # базовые ошибки PEP8 (включает E262, E265 для комментариев)
+    "F",   # ошибки кода (undefined, unused)
+    "I",   # сортировка импортов
+    "DJ",  # Django-правила
+]
+
+# Игнорируем проверки docstring
+ignore = [
+    "D100",  # Missing docstring in module
+    "D101",  # Missing docstring in class
+    "D102",  # Missing docstring in __init__
+    "D103",  # Missing docstring in public function
+    "D104",  # Missing docstring in public method
+    "D105",  # Missing docstring in magic method
+    "D106",  # Missing docstring in public nested class
+    "D107",  # Missing docstring in __init__ method
+]
+
+# Папки, которые не трогаем
+exclude = [
+    ".venv",
+    "migrations",
+    "__pycache__",
+    "settings.py",
+]

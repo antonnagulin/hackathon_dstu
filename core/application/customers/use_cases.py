@@ -15,9 +15,8 @@ class RequestAuthCodeUseCase:
     def execute(self, phone: str) -> dict:
         user = self.customers_repo.get_by_phone(phone)
         if not user:
-            raise ValueError("User not found")
-
-            # user = self.customers_repo.create(phone)
+            # raise ValueError("User not found")
+            user = self.customers_repo.create(phone)
 
         code = user.generate_new_otp()
 

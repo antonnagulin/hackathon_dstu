@@ -7,6 +7,7 @@ from core.application.customers.use_cases import (
     RefreshTokenUseCase,
     RequestAuthCodeUseCase,
 )
+from core.domain.customers.entities import User
 from core.infrastructure.django_apps.customers.repository import (
     DjangoCustomersRepository,
 )
@@ -23,7 +24,7 @@ from .chemas import (
 
 class UserAuthBearer(HttpBearer):
 
-    def authenticate(self, request: HttpRequest, token: str):
+    def authenticate(self, request: HttpRequest, token: str) -> User | None:
         repo = DjangoCustomersRepository()
         user = repo.get_by_access_token(token)
 

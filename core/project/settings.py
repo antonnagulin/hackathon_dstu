@@ -93,3 +93,4 @@ TIME_ZONE = "Europe/Moscow"
 
 
 STATIC_URL = "static/"
+AUTH_USER_MODEL = 'customers.UserModels'

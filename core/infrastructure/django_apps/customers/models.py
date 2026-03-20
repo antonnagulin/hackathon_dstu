@@ -18,7 +18,7 @@ class CustomUserManager(BaseUserManager):
         user.save(using=self._db)
         return user
 
-    def create_superuser(self, phone_number, name, password=None, **extra_fields):
+    def create_superuser(self, phone_number, name=None, password=None, **extra_fields):
         extra_fields.setdefault("is_staff", True)
         extra_fields.setdefault("is_superuser", True)
         extra_fields.setdefault("is_verified", True)
@@ -81,7 +81,7 @@ class Level(models.TextChoices):
 
 
 class Employee(models.Model):
-    user = models.OneToOneField(UserModels, on_delete=models.CASCADE)
+    user = models.OneToOneField(UserModels, on_delete=models.CASCADE, related_name="employee")
     name = models.CharField(max_length=255, verbose_name="ФИО сотрудника")
     position = models.CharField(max_length=100, verbose_name="Должность")
 

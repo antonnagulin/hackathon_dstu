@@ -70,3 +70,42 @@ def get_status(request):
         "progress_percent": round(points / next_level_threshold * 100, 1),
         "points_to_next_level": max(next_level_threshold - points, 0),
     }
+
+
+@router.post("/simulate")
+def simulate(
+        request,
+        data_volume: int,
+        data_deals_count: int,
+        data_bank_share: int,
+        data_approved_requests: int,
+        data_submitted_requests: int
+    ):
+    """
+    data = {
+        "volume": 12,
+        "deals_count": 14,
+        "bank_share": 55,
+        "approved_requests": 28,
+        "submitted_requests": 35
+    }
+    """
+    class TempEmployee:
+        volume = data_volume
+        deals_count = data_deals_count
+        bank_share = data_bank_share
+        bank_share_goal = 50
+        approved_requests = data_approved_requests
+        submitted_requests = data_submitted_requests
+
+        volume_plan = 10
+        deals_plan = 10
+
+    temp_emp = TempEmployee()
+    points = calculate_index(temp_emp)
+    level = get_level(points)
+
+    return {
+        "simulated_points": points,
+        "simulated_level": level
+    }

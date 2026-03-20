@@ -1,4 +1,3 @@
-
 from django.http import HttpRequest
 from ninja import Router
 from ninja.security import HttpBearer

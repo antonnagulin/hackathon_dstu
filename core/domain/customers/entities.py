@@ -3,7 +3,13 @@ import secrets
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta, timezone
 from enum import Enum
-from typing import Optional
+from typing import List, Literal, Optional
+
+LevelType = Literal["Silver", "Gold", "Black"]
+PositionType = Literal["KSO", "Manager", "ROP", "Director"]
+SupportStatus = Literal["open", "closed"]
+LeaderboardType = Literal["dealer", "region"]
+TrainingType = Literal["video", "test"]
 
 
 class UserRole(str, Enum):
@@ -62,3 +68,37 @@ class User:
         if datetime.now(timezone.utc) > self.refresh_expiration:
             return False
         return self.refresh_token == token
+
+
+@dataclass
+class Employee:
+    id: str
+    user_id: int
+    full_name: str
+    position: PositionType
+    dealer_code: str
+    level: LevelType
+    score: int
+    registration_date: datetime
+    sber_id: str
+
+
+@dataclass
+class Level:
+    id: int
+    type: LevelType
+    min_score: int
+    max_score: int
+    benefits: List["Benefit"] = field(default_factory=list)
+
+
+@dataclass
+class Benefit:
+    id: str
+    title: str
+    description: str
+
+    level_required: LevelType
+    financial_value: float
+
+    is_active: bool

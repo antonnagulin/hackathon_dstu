@@ -3,7 +3,7 @@ version: "3.9"
 services:
   web:
     build: .
-    container_name: book-web
+    container_name: web
     ports:
       - "8000:8000"
     volumes:
@@ -20,7 +20,7 @@ services:
 
   db:
     image: postgres:15
-    container_name: book-db
+    container_name: db
     ports:
       - "5433:5432"
     environment:
@@ -32,7 +32,7 @@ services:
 
   redis:
     image: redis:7
-    container_name: book-redis
+    container_name: redis
 
 volumes:
   db-data:

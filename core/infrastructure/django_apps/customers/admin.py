@@ -1,7 +1,7 @@
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin
 
-from .models import UserModels
+from .models import Employee, UserModels
 
 
 @admin.register(UserModels)
@@ -30,3 +30,8 @@ class CustomUserAdmin(UserAdmin):
         ),
         ("OTP", {"fields": ("otp_code", "otp_expiration")}),
     )
+
+
+@admin.register(Employee)
+class EmployeeAdmin(admin.ModelAdmin):
+    list_display = ("name", "position", "level", "points")

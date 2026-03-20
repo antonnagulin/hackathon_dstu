@@ -73,5 +73,42 @@ class UserModels(AbstractBaseUser, PermissionsMixin):
         related_query_name="custom_user_permissions",
     )
 
+
+class Level(models.TextChoices):
+    SILVER = "Silver", "Silver"
+    GOLD = "Gold", "Gold"
+    BLACK = "Black", "Black"
+
+
+class Employee(models.Model):
+    user = models.OneToOneField(UserModels, on_delete=models.CASCADE)
+    name = models.CharField(max_length=255, verbose_name="ФИО сотрудника")
+    position = models.CharField(max_length=100, verbose_name="Должность")
+
+    deals_count = models.IntegerField(
+        default=0, verbose_name="Количество сделок (факт)"
+    )
+    deals_plan = models.IntegerField(
+        default=10, verbose_name="Количество сделок (план)"
+    )
+    volume = models.FloatField(default=0, verbose_name="Объём сделок, млн ₽ (факт)")
+    volume_plan = models.FloatField(
+        default=10, verbose_name="Объём сделок, млн ₽ (план)"
+    )
+    bank_share = models.FloatField(default=0, verbose_name="Доля банка, % (факт)")
+    bank_share_goal = models.FloatField(
+        default=50, verbose_name="Целевая доля банка, %"
+    )
+    approved_requests = models.IntegerField(default=0, verbose_name="Одобренные заявки")
+    submitted_requests = models.IntegerField(default=0, verbose_name="Поданные заявки")
+
+    level = models.CharField(
+        max_length=20,
+        choices=Level.choices,
+        default=Level.SILVER,
+        verbose_name="Уровень сотрудника",
+    )
+    points = models.FloatField(default=0, verbose_name="Баллы сотрудника")
+
     def __str__(self):
-        return f"{self.name or 'Unknown'} ({self.phone_number})"
+        return self.name

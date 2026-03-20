@@ -1,0 +1,10 @@
+version: "3.9"
+
+services:
+  go-calc-service:
+    build:
+      context: .
+      dockerfile: dockerfile
+    container_name: go-calc-service
+    ports:
+      - "8080:8080"

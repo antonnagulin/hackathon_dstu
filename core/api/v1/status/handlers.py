@@ -58,10 +58,13 @@ def build_go_payload(employee: Employee) -> dict:
     }
 
 
-@router.get("/", response=StatusScreenSchema)
-def get_status_test(request, id: int):
+
+@router.get("/", response=StatusScreenSchema,  auth=user_auth)
+def get_status(request):
+    user = request.auth
+    model_user = UserModels.objects.get(id=user.user_id)
+    employee = model_user.employee
     try:
-        employee = get_object_or_404(Employee, user=id)
         config = RatingConfig.objects.get(is_active=True)
 
         logger.info("Calculating rating for employee %s (%s)", employee.id, employee.name)

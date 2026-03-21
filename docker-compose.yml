@@ -2,7 +2,9 @@ version: "3.9"
 
 services:
   web:
-    build: .
+    build:
+      context: .
+      dockerfile: Dockerfile.django
     container_name: web
     ports:
       - "8000:8000"
@@ -13,10 +15,21 @@ services:
     depends_on:
       - db
       - redis
+      - go-calc-service
     command: python manage.py runserver 0.0.0.0:8000
     environment:
-      DATABASE_URL: postgres://${DB_USER}:${DB_PASSWORD}@${DB_HOST}:${DB_PORT}/${DB_NAME}
+      DATABASE_URL: postgres://${DB_USER}:${DB_PASSWORD}@db:5432/${DB_NAME}
       DEBUG: "True"
+      GO_SERVICE_URL: http://go-calc-service:8080
+
+  go-calc-service:
+    build:
+      context: .
+      dockerfile: Dockerfile.go
+    container_name: go-calc-service
+    working_dir: /app/go_calc_service
+    ports:
+      - "8080:8080"
 
   db:
     image: postgres:15
@@ -33,6 +46,8 @@ services:
   redis:
     image: redis:7
     container_name: redis
+    ports:
+      - "6379:6379"
 
 volumes:
   db-data:

@@ -268,3 +268,44 @@ class LevelBenefit(models.Model):
 
     def __str__(self):
         return self.level
+    
+    
+class LevelPrivilege(models.Model):
+    title = models.CharField(
+        max_length=255,
+        verbose_name='Название привилегии'
+    )
+    description = models.TextField(
+        verbose_name='Описание'
+    )
+    financial_effect_rub = models.FloatField(
+        default=0.0,
+        verbose_name='Финансовый эффект (руб.)'
+    )
+    unlock_level = models.CharField(
+        max_length=20,
+        choices=Level.choices,
+        default=Level.SILVER,
+        verbose_name='Уровень разблокировки'
+    )
+    is_active = models.BooleanField(
+        default=True,
+        verbose_name='Активна'
+    )
+
+    created_at = models.DateTimeField(
+        auto_now_add=True,
+        verbose_name='Дата создания'
+    )
+    updated_at = models.DateTimeField(
+        auto_now=True,
+        verbose_name='Дата обновления'
+    )
+
+    def __str__(self):
+        return self.title
+
+    class Meta:
+        verbose_name = 'Привилегия уровня'
+        verbose_name_plural = 'Привилегии уровней'
+        ordering = ['title']

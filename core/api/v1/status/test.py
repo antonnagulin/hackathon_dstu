@@ -11,6 +11,7 @@ from core.api.v1.status.service import (
     calculate_progress_percent,
 )
 from core.api.v1.status.shemas import (
+    RatingDetailsScreenSchema,
     StatusScreenSchema,
     ScenarioScreenInSchema,
     ScenarioScreenOutSchema,
@@ -261,6 +262,53 @@ def build_scenario_screen_response(
         },
     }
 
+def build_rating_details_screen_response(result: dict) -> dict:
+    breakdown = result.get("breakdown") or {}
+    next_level_data = result.get("next_level") or {}
+
+    items = [
+        {
+            "code": "volume",
+            "title": "Объём",
+            "points": float(breakdown.get("volume_contribution") or 0),
+            "formula": "(факт объёма / план объёма) × 100, максимум 120",
+            "how_to_improve": "Увеличить объём профинансированных сделок",
+        },
+        {
+            "code": "deals",
+            "title": "Сделки",
+            "points": float(breakdown.get("deals_contribution") or 0),
+            "formula": "(количество сделок / план по сделкам) × 100, максимум 120",
+            "how_to_improve": "Увеличить число оформленных сделок",
+        },
+        {
+            "code": "bank_share",
+            "title": "Доля банка",
+            "points": float(breakdown.get("share_contribution") or 0),
+            "formula": "(фактическая доля / целевая доля) × 100, максимум 120",
+            "how_to_improve": "Увеличить долю банка в портфеле",
+        },
+        {
+            "code": "conversion",
+            "title": "Конверсия",
+            "points": float(breakdown.get("conv_contribution") or 0),
+            "formula": "(одобрено / подано) × 100, максимум 120",
+            "how_to_improve": "Повысить качество подаваемых заявок",
+        },
+    ]
+
+    return {
+        "level": result["level"],
+        "score": float(result["score"]),
+        "next_level": next_level_data.get("next_level"),
+        "points_to_next_level": next_level_data.get("missing_score"),
+        "items": items,
+        "cta": {
+            "title": "Смоделировать рост",
+            "action": "open_scenario_calculator",
+        },
+    }
+
 # -------------------- API --------------------
 
 
@@ -329,3 +377,27 @@ def get_status_scenario(request, data: ScenarioScreenInSchema):
         scenario_result=scenario_result,
         finance_result=finance_result,
     )
+    
+
+@router.get("/details", response=RatingDetailsScreenSchema, auth=user_auth)
+@handle_service_errors
+def get_status_details(request):
+    user = request.auth
+    model_user = UserModels.objects.get(id=user.user_id)
+    employee = model_user.employee
+    config = get_active_rating_config()
+
+    logger.info(
+        "Calculating rating details for employee %s (%s)",
+        employee.id,
+        employee.name,
+    )
+
+    validate_employee(employee)
+
+    payload = build_go_calculate_request(employee, config)
+    result = call_go_calculate(payload)
+
+    update_employee_rating(employee, result)
+
+    return build_rating_details_screen_response(result)

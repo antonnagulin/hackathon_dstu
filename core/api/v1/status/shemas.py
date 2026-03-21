@@ -165,3 +165,25 @@ class ScenarioResultSchema(Schema):
 class ScenarioScreenOutSchema(Schema):
     current_status: ScenarioCurrentStatusSchema
     result: ScenarioResultSchema
+    
+    
+class RatingDetailItemSchema(Schema):
+    code: str
+    title: str
+    points: float
+    formula: str
+    how_to_improve: str
+
+
+class RatingDetailCtaSchema(Schema):
+    title: str
+    action: str
+
+
+class RatingDetailsScreenSchema(Schema):
+    level: str
+    score: float
+    next_level: str | None = None
+    points_to_next_level: float | None = None
+    items: list[RatingDetailItemSchema]
+    cta: RatingDetailCtaSchema

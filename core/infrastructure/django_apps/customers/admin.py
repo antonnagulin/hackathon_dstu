@@ -1,7 +1,7 @@
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin
 
-from .models import Employee, LevelBenefit, RatingConfig, UserModels
+from .models import Employee, LevelBenefit, LevelPrivilege, RatingConfig, UserModels
 
 
 @admin.register(UserModels)
@@ -112,6 +112,53 @@ class RatingConfigAdmin(admin.ModelAdmin):
                     "silver_bonus",
                     "gold_bonus",
                     "black_bonus",
+                )
+            },
+        ),
+        (
+            "Служебные поля",
+            {
+                "fields": (
+                    "created_at",
+                    "updated_at",
+                )
+            },
+        ),
+    )
+
+
+
+@admin.register(LevelPrivilege)
+class LevelPrivilegeAdmin(admin.ModelAdmin):
+    list_display = (
+        "title",
+        "unlock_level",
+        "financial_effect_rub",
+        "is_active",
+        "updated_at",
+    )
+    list_filter = ("unlock_level", "is_active")
+    search_fields = ("title", "description")
+    readonly_fields = ("created_at", "updated_at")
+    ordering = ("unlock_level", "title")
+
+    fieldsets = (
+        (
+            "Основное",
+            {
+                "fields": (
+                    "title",
+                    "description",
+                    "unlock_level",
+                    "is_active",
+                )
+            },
+        ),
+        (
+            "Финансовый эффект",
+            {
+                "fields": (
+                    "financial_effect_rub",
                 )
             },
         ),

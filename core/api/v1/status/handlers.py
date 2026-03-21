@@ -67,7 +67,7 @@ def get_status(request):
     return {
         "level": level,
         "points": int(points),
-        "progress_percent": int(round(points / next_level_threshold * 100, 1)),
+        "progress_percent": round(points / next_level_threshold * 100, 1),
         "points_to_next_level": int(max(next_level_threshold - points, 0)),
     }
 

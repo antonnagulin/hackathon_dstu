@@ -1,4 +1,6 @@
-from ninja import Router
+import requests
+from django.shortcuts import get_object_or_404
+from ninja import Router, Schema
 
 from core.api.v1.customers.handlers import user_auth
 from core.infrastructure.django_apps.customers.models import Employee, UserModels
@@ -109,3 +111,89 @@ def simulate(
         "simulated_points": points,
         "simulated_level": level
     }
+
+
+class CalculateRequest(Schema):
+    FactVolume: float
+    PlanVolume: float
+    FactDeals: int
+    PlanDeals: int
+    FactBankShare: float
+    TargetBankShare: float
+    SubmittedApps: int
+    ApprovedApps: int
+    ConversionPercent: float
+    MaxIndex: float
+    Weights: dict
+    Thresholds: dict
+
+class GoServiceResponse(Schema):
+    Score: float
+    Level: str
+    Breakdown: dict
+    NextLevel: dict
+
+
+@router.get("/test", auth=user_auth, response=GoServiceResponse)
+def get_status_test(request):
+    user = request.auth
+    model_user = UserModels.objects.get(id=user.user_id)
+    employee = model_user.employee
+
+    # 2. Конвертируем данные сотрудника в формат для Go‑сервиса
+    go_request_data = CalculateRequest(
+        FactVolume=employee.volume,
+        PlanVolume=employee.volume_plan,
+        FactDeals=employee.deals_count,
+        PlanDeals=employee.deals_plan,
+        FactBankShare=employee.bank_share,
+        TargetBankShare=employee.bank_share_goal,
+        SubmittedApps=employee.submitted_requests,
+        ApprovedApps=employee.approved_requests,
+        ConversionPercent=calculate_conversion_percent(
+            employee.submitted_requests,
+            employee.approved_requests
+        ),
+        MaxIndex=1.5,  # фиксированное значение или из настроек
+        Weights={
+            "Volume": 0.3,
+            "Deals": 0.25,
+            "BankShare": 0.2,
+            "Conversion": 0.25
+        },
+        Thresholds={
+            "GoldFrom": 80.0,
+            "BlackFrom": 95.0
+        }
+    )
+
+    # 3. Отправляем запрос в Go‑сервис
+    try:
+        go_response = requests.post(
+            "http://go-calc-service:8080/api/v1/calculate",
+            json=go_request_data.dict(),
+            timeout=10
+        )
+
+        if go_response.status_code == 200:
+            result = go_response.json()
+
+            # 4. Обновляем данные сотрудника в базе
+            employee.points = result["Score"]
+            employee.level = result["Level"]
+            employee.save()
+
+            return result
+        else:
+            raise Exception(f"Go service returned {go_response.status_code}: {go_response.text}")
+
+    except requests.exceptions.RequestException as e:
+        raise Exception(f"Connection error to Go service: {str(e)}")
+    except Exception as e:
+        raise Exception(f"Error processing employee calculation: {str(e)}")
+
+def calculate_conversion_percent(submitted: int, approved: int) -> float:
+    """Рассчитывает процент конверсии."""
+    if submitted == 0:
+        return 0.0
+    return (approved / submitted) * 100

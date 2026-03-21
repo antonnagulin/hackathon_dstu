@@ -11,6 +11,8 @@ from core.api.v1.status.service import (
     calculate_progress_percent,
 )
 from core.api.v1.status.shemas import (
+    DailyResultsInSchema,
+    DailyResultsOutSchema,
     LevelPrivilegesScreenSchema,
     RatingDetailsScreenSchema,
     StatusScreenSchema,
@@ -19,6 +21,7 @@ from core.api.v1.status.shemas import (
 )
 from core.infrastructure.django_apps.customers.models import (
     Employee,
+    EmployeeDailyResult,
     LevelBenefit,
     LevelPrivilege,
     RatingConfig,
@@ -109,8 +112,8 @@ def build_go_scenario_delta(data: ScenarioScreenInSchema) -> dict:
         "extra_volume": data.extra_volume,
         "extra_deals": data.extra_deals,
         "extra_bank_share": effective_extra_bank_share,
-        "extra_submitted": data.extra_submitted,
-        "extra_approved": data.extra_approved,
+        "extra_submitted": 0,
+        "extra_approved": 0,
     }
 
 
@@ -456,3 +459,60 @@ def get_level_privileges(request):
     )
 
     return build_level_privileges_screen_response(employee.level)
+
+
+
+@router.post("/daily-results", response=DailyResultsOutSchema, auth=user_auth)
+@handle_service_errors
+def save_daily_results(request, data: DailyResultsInSchema):
+    user = request.auth
+    model_user = UserModels.objects.get(id=user.user_id)
+    employee = model_user.employee
+
+    daily_result, _ = EmployeeDailyResult.objects.update_or_create(
+        employee=employee,
+        date=data.date,
+        defaults={
+            "deals_count": data.deals_count,
+            "credit_volume": data.credit_volume,
+            "extra_products_count": data.extra_products_count,
+        },
+    )
+
+    return {
+        "date": str(daily_result.date),
+        "deals_count": daily_result.deals_count,
+        "credit_volume": daily_result.credit_volume,
+        "extra_products_count": daily_result.extra_products_count,
+        "saved": True,
+    }
+    
+    
+
+
+@router.get("/daily-results", response=DailyResultsOutSchema, auth=user_auth)
+@handle_service_errors
+def get_daily_results(request, date: str | None = None):
+    user = request.auth
+    model_user = UserModels.objects.get(id=user.user_id)
+    employee = model_user.employee
+
+    target_date = date or str(date.today())
+
+    daily_result, _ = EmployeeDailyResult.objects.get_or_create(
+        employee=employee,
+        date=target_date,
+        defaults={
+            "deals_count": 0,
+            "credit_volume": 0.0,
+            "extra_products_count": 0,
+        },
+    )
+
+    return {
+        "date": str(daily_result.date),
+        "deals_count": daily_result.deals_count,
+        "credit_volume": daily_result.credit_volume,
+        "extra_products_count": daily_result.extra_products_count,
+        "saved": True,
+    }

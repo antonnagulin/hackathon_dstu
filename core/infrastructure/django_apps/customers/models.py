@@ -309,3 +309,46 @@ class LevelPrivilege(models.Model):
         verbose_name = 'Привилегия уровня'
         verbose_name_plural = 'Привилегии уровней'
         ordering = ['title']
+
+
+
+class EmployeeDailyResult(models.Model):
+    employee = models.ForeignKey(
+        Employee,
+        on_delete=models.CASCADE,
+        verbose_name='Сотрудник'
+    )
+    date = models.DateField(
+        verbose_name='Дата'
+    )
+
+    deals_count = models.IntegerField(
+        default=0,
+        verbose_name='Количество сделок'
+    )
+    credit_volume = models.FloatField(
+        default=0.0,
+        verbose_name='Объём кредитов (руб.)'
+    )
+    extra_products_count = models.IntegerField(
+        default=0,
+        verbose_name='Количество дополнительных продуктов'
+    )
+
+    created_at = models.DateTimeField(
+        auto_now_add=True,
+        verbose_name='Дата создания записи'
+    )
+    updated_at = models.DateTimeField(
+        auto_now=True,
+        verbose_name='Дата последнего обновления'
+    )
+
+    class Meta:
+        verbose_name = 'Ежедневный результат сотрудника'
+        verbose_name_plural = 'Ежедневные результаты сотрудников'
+        unique_together = ('employee', 'date')
+        ordering = ['-date', 'employee']
+
+    def __str__(self):
+        return f'{self.employee} — {self.date}'

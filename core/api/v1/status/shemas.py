@@ -145,8 +145,6 @@ class ScenarioScreenInSchema(Schema):
     extra_deals: int = 0
     extra_volume: float = 0.0
     extra_bank_share: float = 0.0
-    extra_submitted: int = 0
-    extra_approved: int = 0
     extra_products: int = 0
 
 
@@ -196,3 +194,18 @@ class LevelPrivilegesScreenSchema(Schema):
     current_level: str
     active: list[LevelPrivilegeItemSchema]
     locked: list[LevelPrivilegeItemSchema]
+
+
+class DailyResultsInSchema(Schema):
+    date: str
+    deals_count: int = 0
+    credit_volume: float = 0.0
+    extra_products_count: int = 0
+
+
+class DailyResultsOutSchema(Schema):
+    date: str
+    deals_count: int
+    credit_volume: float
+    extra_products_count: int
+    saved: bool

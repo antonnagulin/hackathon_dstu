@@ -1,7 +1,7 @@
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin
 
-from .models import Employee, LevelBenefit, LevelPrivilege, RatingConfig, UserModels
+from .models import Employee, EmployeeDailyResult, LevelBenefit, LevelPrivilege, RatingConfig, UserModels
 
 
 @admin.register(UserModels)
@@ -159,6 +159,53 @@ class LevelPrivilegeAdmin(admin.ModelAdmin):
             {
                 "fields": (
                     "financial_effect_rub",
+                )
+            },
+        ),
+        (
+            "Служебные поля",
+            {
+                "fields": (
+                    "created_at",
+                    "updated_at",
+                )
+            },
+        ),
+    )
+
+
+@admin.register(EmployeeDailyResult)
+class EmployeeDailyResultAdmin(admin.ModelAdmin):
+    list_display = (
+        "employee",
+        "date",
+        "deals_count",
+        "credit_volume",
+        "extra_products_count",
+        "updated_at",
+    )
+    list_filter = ("date",)
+    search_fields = ("employee__name", "employee__id")
+    readonly_fields = ("created_at", "updated_at")
+    ordering = ("-date", "-updated_at")
+
+    fieldsets = (
+        (
+            "Основное",
+            {
+                "fields": (
+                    "employee",
+                    "date",
+                )
+            },
+        ),
+        (
+            "Результаты дня",
+            {
+                "fields": (
+                    "deals_count",
+                    "credit_volume",
+                    "extra_products_count",
                 )
             },
         ),

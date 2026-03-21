@@ -1,9 +1,15 @@
-# from functools import wraps
 # import logging
+# from functools import wraps
+
 # from django.http import JsonResponse
 # from ninja import HttpError
 
-# from core.infrastructure.django_apps.customers.models import Employee, LevelBenefit, RatingConfig, UserModels
+# from core.infrastructure.django_apps.customers.models import (
+#     Employee,
+#     LevelBenefit,
+#     RatingConfig,
+#     UserModels,
+# )
 
 # logger = logging.getLogger(__name__)
 

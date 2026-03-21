@@ -46,7 +46,7 @@ class ConfirmAuthCodeUseCase:
             access, refresh = user.generate_new_tokens()
             self.customers_repo.save(user)
 
-            return {"acsess_token": access, "refresh_token": refresh}
+            return {"access_token": access, "refresh_token": refresh}
 
         raise ValueError("code insorrected")
 
@@ -69,7 +69,7 @@ class RefreshTokenUseCase:
 
         self.customers_repo.save(user)
 
-        return {"acsess_token": access, "refresh_token": refresh}
+        return {"access_token": access, "refresh_token": refresh}
 
 
 class RefreshTokenVerifyUseCase:

@@ -94,3 +94,8 @@ TIME_ZONE = "Europe/Moscow"
 
 STATIC_URL = "static/"
 AUTH_USER_MODEL = 'customers.UserModels'
+
+
+
+GO_SERVICE_URL = config("GO_SERVICE_URL")
+GO_SERVICE_TIMEOUT = int(config("GO_SERVICE_TIMEOUT"))

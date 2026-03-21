@@ -101,3 +101,68 @@ class StatusScreenSchema(Schema):
     progress_percent: float
     financial_forecast: FinancialForecastSchema
     next_level_points: float
+    
+    
+    
+    
+    
+class FinancialForecastSchema(Schema):
+    next_level: str | None = None
+    income_growth_year: float
+    mortgage_saving_year: float
+    other_benefit_year: float
+    total_benefit_year: float
+    title: str
+    description: str
+
+
+class StatusScreenSchema(Schema):
+    employee_id: int
+    name: str
+    level: str
+    score: float
+    next_level: str | None = None
+    next_level_points: float
+    points_to_next_level: float | None = None
+    progress_percent: float
+    financial_forecast: FinancialForecastSchema
+
+
+class ScenarioScreenInSchema(Schema):
+    extra_volume: float = 0.0
+    extra_deals: int = 0
+    extra_bank_share: float = 0.0
+    extra_submitted: int = 0
+    extra_approved: int = 0
+    extra_products: int = 0
+
+
+class ScenarioStateSchema(Schema):
+    level: str
+    score: float
+    bonus: float
+
+
+class ScenarioDeltaSchema(Schema):
+    score_delta: float
+    bonus_delta: float
+    income_growth_year: float
+    mortgage_saving_year: float
+    other_benefit_year: float
+    total_benefit_year: float
+
+
+class AppliedChangesSchema(Schema):
+    extra_volume: float
+    extra_deals: int
+    extra_bank_share: float
+    extra_submitted: int
+    extra_approved: int
+    extra_products: int
+
+
+class ScenarioScreenOutSchema(Schema):
+    current: ScenarioStateSchema
+    scenario: ScenarioStateSchema
+    delta: ScenarioDeltaSchema
+    applied_changes: AppliedChangesSchema

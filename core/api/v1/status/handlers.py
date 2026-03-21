@@ -163,6 +163,7 @@ def get_status(request):
             "level": result["level"],
             "score": result["score"],
             "next_level": next_level,
+            "next_level_points": str(float(result["score"])+float(result["next_level"].get("missing_score"))),
             "points_to_next_level": result["next_level"].get("missing_score"),
             "progress_percent": calculate_progress_percent(
                 score=result["score"],

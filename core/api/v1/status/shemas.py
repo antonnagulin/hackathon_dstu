@@ -100,3 +100,4 @@ class StatusScreenSchema(Schema):
     points_to_next_level: float | None = None
     progress_percent: float
     financial_forecast: FinancialForecastSchema
+    next_level_points: float

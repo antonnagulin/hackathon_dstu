@@ -3,6 +3,7 @@
 
 # from django.http import JsonResponse
 # from ninja import HttpError
+# import requests
 
 # from core.infrastructure.django_apps.customers.models import (
 #     Employee,

@@ -175,15 +175,24 @@ class RatingDetailItemSchema(Schema):
     how_to_improve: str
 
 
-class RatingDetailCtaSchema(Schema):
-    title: str
-    action: str
-
-
 class RatingDetailsScreenSchema(Schema):
     level: str
     score: float
     next_level: str | None = None
     points_to_next_level: float | None = None
     items: list[RatingDetailItemSchema]
-    cta: RatingDetailCtaSchema
+    
+    
+
+class LevelPrivilegeItemSchema(Schema):
+    title: str
+    description: str
+    financial_effect_rub: float
+    status: str
+    unlock_level: str
+
+
+class LevelPrivilegesScreenSchema(Schema):
+    current_level: str
+    active: list[LevelPrivilegeItemSchema]
+    locked: list[LevelPrivilegeItemSchema]

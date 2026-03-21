@@ -11,6 +11,7 @@ from core.api.v1.status.service import (
     calculate_progress_percent,
 )
 from core.api.v1.status.shemas import (
+    LevelPrivilegesScreenSchema,
     RatingDetailsScreenSchema,
     StatusScreenSchema,
     ScenarioScreenInSchema,
@@ -19,6 +20,7 @@ from core.api.v1.status.shemas import (
 from core.infrastructure.django_apps.customers.models import (
     Employee,
     LevelBenefit,
+    LevelPrivilege,
     RatingConfig,
     UserModels,
 )
@@ -303,10 +305,46 @@ def build_rating_details_screen_response(result: dict) -> dict:
         "next_level": next_level_data.get("next_level"),
         "points_to_next_level": next_level_data.get("missing_score"),
         "items": items,
-        "cta": {
-            "title": "Смоделировать рост",
-            "action": "open_scenario_calculator",
-        },
+        # "cta": {
+        #     "title": "Смоделировать рост",
+        #     "action": "open_scenario_calculator",
+        # },
+    }
+
+
+LEVEL_ORDER = {
+    "Silver": 1,
+    "Gold": 2,
+    "Black": 3,
+}
+
+
+def build_level_privileges_screen_response(current_level: str) -> dict:
+    privileges = LevelPrivilege.objects.filter(is_active=True).order_by("unlock_level", "id")
+
+    active = []
+    locked = []
+
+    current_rank = LEVEL_ORDER[current_level]
+
+    for privilege in privileges:
+        item = {
+            "title": privilege.title,
+            "description": privilege.description,
+            "financial_effect_rub": privilege.financial_effect_rub,
+            "status": "active" if current_rank >= LEVEL_ORDER[privilege.unlock_level] else "locked",
+            "unlock_level": privilege.unlock_level,
+        }
+
+        if current_rank >= LEVEL_ORDER[privilege.unlock_level]:
+            active.append(item)
+        else:
+            locked.append(item)
+
+    return {
+        "current_level": current_level,
+        "active": active,
+        "locked": locked,
     }
 
 # -------------------- API --------------------
@@ -401,3 +439,20 @@ def get_status_details(request):
     update_employee_rating(employee, result)
 
     return build_rating_details_screen_response(result)
+
+
+
+@router.get("/privileges", response=LevelPrivilegesScreenSchema, auth=user_auth)
+@handle_service_errors
+def get_level_privileges(request):
+    user = request.auth
+    model_user = UserModels.objects.get(id=user.user_id)
+    employee = model_user.employee
+
+    logger.info(
+        "Loading privileges for employee %s (%s)",
+        employee.id,
+        employee.name,
+    )
+
+    return build_level_privileges_screen_response(employee.level)

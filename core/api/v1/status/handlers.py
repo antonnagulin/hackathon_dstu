@@ -58,7 +58,7 @@ def build_go_payload(employee: Employee) -> dict:
     }
 
 
-@router.get("/test", response=StatusScreenSchema)
+@router.get("/", response=StatusScreenSchema)
 def get_status_test(request, id: int):
     try:
         employee = get_object_or_404(Employee, user=id)

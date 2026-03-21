@@ -1,12 +1,13 @@
 import logging
 
+from ninja.errors import HttpError
 import requests
 from django.conf import settings
 from django.shortcuts import get_object_or_404
 from ninja import Router
 
 from core.api.v1.customers.handlers import user_auth
-from core.api.v1.status.service import calculate_index, get_level
+from core.api.v1.status.service import calculate_index, create_go_service_payload, get_level
 from core.api.v1.status.shemas import (
     CalculateInSchema,
     GoServiceOutSchema,
@@ -84,73 +85,82 @@ def simulate(
 
 logger = logging.getLogger(__name__)
 
+def calculate_conversion_percent(submitted: int, approved: int) -> float:
+    if submitted == 0:
+        return 0.0
+    return (approved / submitted) * 100
 
 # @router.get("/test", auth=user_auth, response=GoServiceOutSchema)
-@router.get("/test", response=GoServiceOutSchema)
-def get_status_test(request ,id: int):
-    # user = request.auth
+def build_go_payload(employee: Employee) -> dict:
+    return {
+        "fact_volume": employee.volume,
+        "plan_volume": 15,  # или employee.volume_plan, если уже корректно заполнено
+        "fact_deals": employee.deals_count,
+        "plan_deals": employee.deals_plan,
+        "fact_bank_share": employee.bank_share,
+        "target_bank_share": employee.bank_share_goal,
+        "submitted_apps": employee.submitted_requests,
+        "approved_apps": employee.approved_requests,
+        "conversion_percent": calculate_conversion_percent(
+            employee.submitted_requests,
+            employee.approved_requests,
+        ),
+        "max_index": 120.0,
+        "weights": {
+            "volume": 0.3,
+            "deals": 0.25,
+            "bank_share": 0.2,
+            "conversion": 0.25,
+        },
+        "thresholds": {
+            "gold_from": 80.0,
+            "black_from": 95.0,
+        },
+    }
 
+
+@router.get("/test", response=GoServiceOutSchema)
+def get_status_test(request, id: int):
     try:
-        # model_user = UserModels.objects.get(id=user.user_id)
         employee = get_object_or_404(Employee, user=id)
 
-        logger.info(f"Calculating rating for employee {employee.id} ({employee.name})")
+        logger.info("Calculating rating for employee %s (%s)", employee.id, employee.name)
 
-
-        go_request_data = CalculateInSchema(
-            FactVolume=employee.volume,
-            PlanVolume=15,
-            FactDeals=employee.deals_count,
-            PlanDeals=employee.deals_plan,
-            FactBankShare=employee.bank_share,
-            TargetBankShare=employee.bank_share_goal,
-            SubmittedApps=employee.submitted_requests,
-            ApprovedApps=employee.approved_requests,
-            ConversionPercent=calculate_conversion_percent(
-                employee.submitted_requests,
-                employee.approved_requests
-            ),
-            MaxIndex=120.0,  
-            Weights={
-                "Volume": 0.3,
-                "Deals": 0.25,
-                "BankShare": 0.2,
-                "Conversion": 0.25
-            },
-            Thresholds={
-                "GoldFrom": 80.0,
-                "BlackFrom": 95.0
-            }
-        )
-
-        print(go_request_data.dict())
-        go_response = requests.post(
-            f"{GO_SERVICE_URL}/api/v1/calculate",
-            json=go_request_data.dict(),
-            timeout=GO_SERVICE_TIMEOUT
-        )
-
-        if go_response.status_code == 200:
-            result = go_response.json()
-
-            employee.points = result["Score"]
-            employee.level = result["Level"]
-            employee.save()
-
-            logger.info(
-                f"Updated employee {employee.id}: "
-                f"Score={result['Score']}, Level={result['Level']}"
+        if employee.approved_requests > employee.submitted_requests:
+            raise Exception(
+                f"Invalid employee data: approved_requests ({employee.approved_requests}) "
+                f"cannot exceed submitted_requests ({employee.submitted_requests})"
             )
 
-            return result
-
-        else:
+        go_request_data = build_go_payload(employee)
+        # logger.info("Go payload: %s", go_request_data.dict())
+        go_response = requests.post(
+            f"{GO_SERVICE_URL}/api/v1/calculate",
+            json=go_request_data,
+            timeout=GO_SERVICE_TIMEOUT,
+        )
+        print(go_response)
+        if go_response.status_code != 200:
             error_msg = (
-                f"Go service returned {go_response.status_code}: "
-                f"{go_response.text}"
+                f"Go service returned {go_response.status_code}: {go_response.text}"
             )
             logger.error(error_msg)
             raise Exception(error_msg)
+
+        result = go_response.json()
+
+        employee.points = result["score"]
+        employee.level = result["level"]
+        employee.save()
+
+        logger.info(
+            "Updated employee %s: score=%s, level=%s",
+            employee.id,
+            result["score"],
+            result["level"],
+        )
+
+        return result
 
     except UserModels.DoesNotExist:
         error_msg = f"User with ID {id} not found"
@@ -179,13 +189,5 @@ def get_status_test(request ,id: int):
 
     except Exception as e:
         error_msg = f"Unexpected error: {str(e)}"
-        logger.exception(error_msg)  
+        logger.exception(error_msg)
         raise Exception(error_msg)
-
-
-
-def calculate_conversion_percent(submitted: int, approved: int) -> float:
-    """Рассчитывает процент конверсии."""
-    if submitted == 0:
-        return 0.0
-    return (approved / submitted) * 100

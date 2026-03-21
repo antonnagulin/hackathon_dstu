@@ -70,3 +70,16 @@ class RefreshTokenUseCase:
         self.customers_repo.save(user)
 
         return {"acsess_token": access, "refresh_token": refresh}
+
+
+class RefreshTokenVerifyUseCase:
+
+    def __init__(self, customers_repo: BaseCustomersRepository):
+        self.customers_repo = customers_repo
+
+    def execute(self, refresh_token: str):
+
+        user = self.customers_repo.get_by_refresh_token(refresh_token)
+        if not user:
+            raise ValueError("Invalid refresh token")
+        return True

@@ -4,24 +4,25 @@ from ninja import Schema
 
 
 class CalculateInSchema(Schema):
-    FactVolume: float
-    PlanVolume: float
-    FactDeals: int
-    PlanDeals: int
-    FactBankShare: float
-    TargetBankShare: float
-    SubmittedApps: int
-    ApprovedApps: int
-    ConversionPercent: float
-    MaxIndex: float
-    Weights: dict
-    Thresholds: dict
+    fact_volume: float
+    plan_volume: float
+    fact_deals: int
+    plan_deals: int
+    fact_bank_share: float
+    target_bank_share: float
+    submitted_apps: int
+    approved_apps: int
+    conversion_percent: float
+    max_index: float
+    weights: dict
+    thresholds: dict
 
-class GoServiceOutSchema(Schema):  # Исправлено: OutShema → OutSchema
-    Score: float
-    Level: str
-    Breakdown: dict
-    NextLevel: dict
+
+class GoServiceOutSchema(Schema):
+    score: float
+    level: str
+    breakdown: dict
+    next_level: dict
 
 class ScenarioDeltaInSchema(Schema):
     ExtraVolume: float = 0.0

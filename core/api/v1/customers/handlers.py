@@ -5,6 +5,7 @@ from ninja.security import HttpBearer
 from core.application.customers.use_cases import (
     ConfirmAuthCodeUseCase,
     RefreshTokenUseCase,
+    RefreshTokenVerifyUseCase,
     RequestAuthCodeUseCase,
 )
 from core.domain.customers.entities import User
@@ -85,6 +86,15 @@ def refresh_token(request, shema: RefreshInShema):
 
     use_case = RefreshTokenUseCase(DjangoCustomersRepository())
     return use_case.execute(shema.refresh_token)
+
+
+@router.post("/token-verify",)
+def token_verify(request, shema: RefreshInShema):
+
+    use_case = RefreshTokenVerifyUseCase(DjangoCustomersRepository())
+    response = use_case.execute(shema.refresh_token)
+    
+    return response
 
 
 @router.get("/profile", auth=user_auth)

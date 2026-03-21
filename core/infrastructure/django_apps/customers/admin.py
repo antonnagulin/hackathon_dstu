@@ -34,9 +34,80 @@ class CustomUserAdmin(UserAdmin):
 
 @admin.register(Employee)
 class EmployeeAdmin(admin.ModelAdmin):
-    list_display = ("name", "position", "level", "points")
+    list_display = (
+        "id",
+        "name",
+        "dealer_code",
+        "position",
+        "level",
+        "points",
+        "deals_count",
+        "volume",
+        "bank_share",
+        "created_at",
+    )
+    list_filter = (
+        "level",
+        "position",
+        "created_at",
+    )
+    search_fields = (
+        "name",
+        "email",
+        "dealer_code",
+        "user__id",
+    )
+    readonly_fields = (
+        "created_at",
+    )
+    ordering = ("-created_at",)
 
-
+    fieldsets = (
+        (
+            "Основное",
+            {
+                "fields": (
+                    "user",
+                    "name",
+                    "email",
+                    "dealer_code",
+                    "position",
+                )
+            },
+        ),
+        (
+            "Показатели сотрудника",
+            {
+                "fields": (
+                    "deals_count",
+                    "deals_plan",
+                    "volume",
+                    "volume_plan",
+                    "bank_share",
+                    "bank_share_goal",
+                    "approved_requests",
+                    "submitted_requests",
+                )
+            },
+        ),
+        (
+            "Рейтинг",
+            {
+                "fields": (
+                    "level",
+                    "points",
+                )
+            },
+        ),
+        (
+            "Служебные поля",
+            {
+                "fields": (
+                    "created_at",
+                )
+            },
+        ),
+    )
 
 
 @admin.register(LevelBenefit)

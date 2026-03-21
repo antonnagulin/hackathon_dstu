@@ -209,3 +209,16 @@ class DailyResultsOutSchema(Schema):
     credit_volume: float
     extra_products_count: int
     saved: bool
+    
+    
+
+class EmployeeProfileSchema(Schema):
+    full_name: str
+    dealer_code: str | None = None
+    position: str | None = None
+    phone: str | None = None
+    email: str | None = None
+    level: str
+    program_registered_at: str | None = None
+    # program_duration_months: int
+    sber_id: str | None = None

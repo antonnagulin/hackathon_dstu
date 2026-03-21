@@ -84,6 +84,10 @@ class Level(models.TextChoices):
 class Employee(models.Model):
     user = models.OneToOneField(UserModels, on_delete=models.CASCADE, related_name="employee")
     name = models.CharField(max_length=255, verbose_name="ФИО сотрудника")
+    email = models.CharField(max_length=100, verbose_name="Email", blank=True)
+
+    dealer_code = models.CharField(max_length=100, verbose_name="dealer_code", blank=True)
+    
     position = models.CharField(max_length=100, verbose_name="Должность")
 
     deals_count = models.IntegerField(
@@ -111,6 +115,10 @@ class Employee(models.Model):
     )
     points = models.FloatField(default=0, verbose_name="Баллы сотрудника")
 
+    created_at = models.DateTimeField(
+        auto_now_add=True,
+        verbose_name="Создано"
+    )
     def __str__(self):
         return self.name
 

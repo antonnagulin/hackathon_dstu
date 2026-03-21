@@ -1,7 +1,10 @@
 import logging
+from datetime import date as date_at
 
 import requests
 from django.conf import settings
+from django.db.models import Sum
+from django.utils import timezone
 from ninja import Router
 
 from core.api.v1.customers.handlers import user_auth
@@ -13,11 +16,12 @@ from core.api.v1.status.service import (
 from core.api.v1.status.shemas import (
     DailyResultsInSchema,
     DailyResultsOutSchema,
+    EmployeeProfileSchema,
     LevelPrivilegesScreenSchema,
     RatingDetailsScreenSchema,
-    StatusScreenSchema,
     ScenarioScreenInSchema,
     ScenarioScreenOutSchema,
+    StatusScreenSchema,
 )
 from core.infrastructure.django_apps.customers.models import (
     Employee,
@@ -321,6 +325,34 @@ LEVEL_ORDER = {
     "Black": 3,
 }
 
+def calculate_program_duration_months(start_date):
+    if not start_date:
+        return 0
+
+    today = timezone.localdate()
+    months = (today.year - start_date.year) * 12 + (today.month - start_date.month)
+
+    if today.day < start_date.day:
+        months -= 1
+
+    return max(months, 0)
+
+
+def build_employee_profile_response(employee: Employee) -> dict:
+    registered_at = getattr(employee, "created_at", None)
+    program_registered_at = registered_at.date().isoformat() if registered_at else None
+
+    return {
+        "full_name": employee.name,
+        "dealer_code": getattr(employee, "dealer_code", None),
+        "position": getattr(employee, "position", None),
+        "phone": getattr(employee.user, "phone_number", None),
+        "email": getattr(employee, "email", None),
+        "level": employee.level,
+        "program_registered_at": program_registered_at,
+        "sber_id": str(getattr(employee, "id", None)),
+    }
+
 
 def build_level_privileges_screen_response(current_level: str) -> dict:
     privileges = LevelPrivilege.objects.filter(is_active=True).order_by("unlock_level", "id")
@@ -349,6 +381,40 @@ def build_level_privileges_screen_response(current_level: str) -> dict:
         "active": active,
         "locked": locked,
     }
+    
+
+def get_month_bounds(target_date: date_at):
+    month_start = target_date.replace(day=1)
+
+    if target_date.month == 12:
+        next_month = target_date.replace(year=target_date.year + 1, month=1, day=1)
+    else:
+        next_month = target_date.replace(month=target_date.month + 1, day=1)
+
+    return month_start, next_month
+
+
+def recalculate_employee_from_daily_results(employee: Employee, target_date: date_at | None = None):
+    target_date = target_date or timezone.localdate()
+    month_start, next_month = get_month_bounds(target_date)
+
+    aggregates = EmployeeDailyResult.objects.filter(
+        employee=employee,
+        date__gte=month_start,
+        date__lt=next_month,
+    ).aggregate(
+        total_deals=Sum("deals_count"),
+        total_volume=Sum("credit_volume"),
+        total_extra_products=Sum("extra_products_count"),
+    )
+
+    employee.deals_count = aggregates["total_deals"] or 0
+    employee.volume = aggregates["total_volume"] or 0
+
+    if hasattr(employee, "extra_products_count"):
+        employee.extra_products_count = aggregates["total_extra_products"] or 0
+
+    employee.save()
 
 # -------------------- API --------------------
 
@@ -463,7 +529,7 @@ def get_level_privileges(request):
 
 
 @router.post("/daily-results", response=DailyResultsOutSchema, auth=user_auth)
-@handle_service_errors
+# @handle_service_errors
 def save_daily_results(request, data: DailyResultsInSchema):
     user = request.auth
     model_user = UserModels.objects.get(id=user.user_id)
@@ -479,6 +545,8 @@ def save_daily_results(request, data: DailyResultsInSchema):
         },
     )
 
+    recalculate_employee_from_daily_results(employee, target_date=daily_result.date)
+
     return {
         "date": str(daily_result.date),
         "deals_count": daily_result.deals_count,
@@ -486,18 +554,15 @@ def save_daily_results(request, data: DailyResultsInSchema):
         "extra_products_count": daily_result.extra_products_count,
         "saved": True,
     }
-    
-    
 
-
+# @handle_service_errors    
 @router.get("/daily-results", response=DailyResultsOutSchema, auth=user_auth)
-@handle_service_errors
 def get_daily_results(request, date: str | None = None):
     user = request.auth
     model_user = UserModels.objects.get(id=user.user_id)
     employee = model_user.employee
 
-    target_date = date or str(date.today())
+    target_date = date or str(date_at.today())
 
     daily_result, _ = EmployeeDailyResult.objects.get_or_create(
         employee=employee,
@@ -516,3 +581,19 @@ def get_daily_results(request, date: str | None = None):
         "extra_products_count": daily_result.extra_products_count,
         "saved": True,
     }
+    
+    
+@router.get("/profile", response=EmployeeProfileSchema, auth=user_auth)
+@handle_service_errors
+def get_employee_profile(request):
+    user = request.auth
+    model_user = UserModels.objects.get(id=user.user_id)
+    employee = model_user.employee
+
+    logger.info(
+        "Loading profile for employee %s (%s)",
+        employee.id,
+        employee.name,
+    )
+
+    return build_employee_profile_response(employee)

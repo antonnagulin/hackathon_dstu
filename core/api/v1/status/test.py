@@ -342,3 +342,18 @@ def get_status_scenario(request, data: ScenarioScreenInSchema):
         scenario_result=scenario_result,
         finance_result=finance_result,
     )
+    
+
+def build_scenario_screen_response(scenario_result: dict, finance_result: dict) -> dict:
+    scenario_level = scenario_result["scenario"]["level"]
+    benefit = get_level_benefit_payload(scenario_level)
+
+    return {
+        "current_level": scenario_result["current"]["level"],
+        "current_score": scenario_result["current"]["score"],
+        "scenario_level": scenario_result["scenario"]["level"],
+        "scenario_score": scenario_result["scenario"]["score"],
+        "scenario_bonus": finance_result["scenario"]["bonus"],
+        "income_growth_year": benefit["income_growth_year"],
+        "mortgage_saving_year": benefit["mortgage_saving_year"],
+    }

@@ -85,3 +85,17 @@ def calculate_index(employee: Employee) -> float:
     # Итоговые баллы
     points = 0.35 * volume_index + 0.25 * deals_index + 0.25 * bank_index + 0.15 * conversion_index
     return round(points, 1)
+
+
+def calculate_conversion_percent(submitted: int, approved: int) -> float:
+    if submitted == 0:
+        return 0.0
+    return (approved / submitted) * 100
+
+
+def calculate_progress_percent(score: float, level: str, gold_from: float, black_from: float) -> float:
+    if level == "Silver":
+        return round(min((score / gold_from) * 100, 100), 2)
+    if level == "Gold":
+        return round(min((score / black_from) * 100, 100), 2)
+    return 100.0

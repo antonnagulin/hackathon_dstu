@@ -1,4 +1,5 @@
 from datetime import datetime
+from typing import Optional
 
 from ninja import Schema
 
@@ -21,7 +22,7 @@ class CalculateInSchema(Schema):
 class GoServiceOutSchema(Schema):
     score: float
     level: str
-    breakdown: dict
+    # breakdown: dict
     next_level: dict
 
 class ScenarioDeltaInSchema(Schema):
@@ -77,3 +78,25 @@ class HealthCheckSchema(Schema):
     Status: str
     Timestamp: datetime
     Version: str | None = None
+      
+
+
+class FinancialForecastSchema(Schema):
+    next_level: str | None = None
+    income_growth_year: float
+    mortgage_saving_year: float
+    other_benefit_year: float
+    total_benefit_year: float
+    title: str
+    description: str
+
+
+class StatusScreenSchema(Schema):
+    employee_id: int
+    name: str
+    level: str
+    score: float
+    next_level: str | None = None
+    points_to_next_level: float | None = None
+    progress_percent: float
+    financial_forecast: FinancialForecastSchema

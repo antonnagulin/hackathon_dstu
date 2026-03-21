@@ -5,6 +5,7 @@ from django.contrib.auth.models import (
     Permission,
     PermissionsMixin,
 )
+from django.core.exceptions import ValidationError
 from django.db import models
 
 
@@ -112,3 +113,158 @@ class Employee(models.Model):
 
     def __str__(self):
         return self.name
+
+
+
+class RatingConfig(models.Model):
+    name = models.CharField(
+        max_length=100,
+        unique=True,
+        verbose_name="Название конфигурации"
+    )
+    is_active = models.BooleanField(
+        default=False,
+        verbose_name="Активна"
+    )
+
+    gold_from = models.FloatField(
+        default=70.0,
+        verbose_name="Порог уровня Gold (балл)"
+    )
+    black_from = models.FloatField(
+        default=90.0,
+        verbose_name="Порог уровня Black (балл)"
+    )
+    max_index = models.FloatField(
+        default=120.0,
+        verbose_name="Максимальный индекс рейтинга"
+    )
+
+    weight_volume = models.FloatField(
+        default=0.35,
+        verbose_name="Вес показателя объёма продаж"
+    )
+    weight_deals = models.FloatField(
+        default=0.25,
+        verbose_name="Вес показателя количества сделок"
+    )
+    weight_bank_share = models.FloatField(
+        default=0.25,
+        verbose_name="Вес показателя доли банка"
+    )
+    weight_conversion = models.FloatField(
+        default=0.15,
+        verbose_name="Вес показателя конверсии"
+    )
+
+    silver_bonus = models.FloatField(
+        default=0.0,
+        verbose_name="Бонус уровня Silver (руб.)"
+    )
+    gold_bonus = models.FloatField(
+        default=20000.0,
+        verbose_name="Бонус уровня Gold (руб.)"
+    )
+    black_bonus = models.FloatField(
+        default=40000.0,
+        verbose_name="Бонус уровня Black (руб.)"
+    )
+
+    created_at = models.DateTimeField(
+        auto_now_add=True,
+        verbose_name="Создано"
+    )
+    updated_at = models.DateTimeField(
+        auto_now=True,
+        verbose_name="Обновлено"
+    )
+
+    class Meta:
+        verbose_name = "Конфигурация рейтинга"
+        verbose_name_plural = "Конфигурации рейтинга"
+
+    def clean(self):
+        weight_sum = (
+            self.weight_volume
+            + self.weight_deals
+            + self.weight_bank_share
+            + self.weight_conversion
+        )
+        if round(weight_sum, 6) != 1.0:
+            raise ValidationError("Сумма весов должна быть равна 1.0")
+
+        if self.gold_from >= self.black_from:
+            raise ValidationError("Порог Gold должен быть меньше порога Black")
+
+    def save(self, *args, **kwargs):
+        self.full_clean()
+        if self.is_active:
+            RatingConfig.objects.filter(is_active=True).exclude(pk=self.pk).update(is_active=False)
+        super().save(*args, **kwargs)
+
+    def __str__(self):
+        return self.name
+
+
+
+class LevelBenefit(models.Model):
+    level = models.CharField(
+        max_length=20,
+        choices=Level.choices,
+        default=Level.SILVER,
+        unique=True,
+        verbose_name="Уровень"
+    )
+    is_active = models.BooleanField(
+        default=True,
+        verbose_name="Активен"
+    )
+
+    income_growth_year = models.FloatField(
+        default=0.0,
+        verbose_name="Рост дохода за год (руб.)"
+    )
+    mortgage_saving_year = models.FloatField(
+        default=0.0,
+        verbose_name="Экономия на ипотеке за год (руб.)"
+    )
+    other_benefit_year = models.FloatField(
+        default=0.0,
+        verbose_name="Прочие выгоды за год (руб.)"
+    )
+
+    title = models.CharField(
+        max_length=255,
+        blank=True,
+        default="",
+        verbose_name="Заголовок"
+    )
+    description = models.TextField(
+        blank=True,
+        default="",
+        verbose_name="Описание"
+    )
+
+    created_at = models.DateTimeField(
+        auto_now_add=True,
+        verbose_name="Создано"
+    )
+    updated_at = models.DateTimeField(
+        auto_now=True,
+        verbose_name="Обновлено"
+    )
+
+    class Meta:
+        verbose_name = "Льгота уровня"
+        verbose_name_plural = "Льготы уровней"
+
+    @property
+    def total_benefit_year(self) -> float:
+        return (
+            self.income_growth_year
+            + self.mortgage_saving_year
+            + self.other_benefit_year
+        )
+
+    def __str__(self):
+        return self.level

@@ -203,13 +203,20 @@ class DailyResultsInSchema(Schema):
     extra_products_count: int = 0
 
 
-class DailyResultsOutSchema(Schema):
+class GetDailyResultsOutSchema(Schema):
     date: str
     deals_count: int
     credit_volume: float
     extra_products_count: int
-    saved: bool
+    # saved: bool
     
+    
+class PostDailyResultsOutSchema(Schema):
+    # date: str
+    # deals_count: int
+    # credit_volume: float
+    # extra_products_count: int
+    saved: bool
     
 
 class EmployeeProfileSchema(Schema):
@@ -222,3 +229,13 @@ class EmployeeProfileSchema(Schema):
     program_registered_at: str | None = None
     # program_duration_months: int
     sber_id: str | None = None
+    
+    
+
+class PersonalFinancialEffectSchema(Schema):
+    level: str
+    bonus_income_year: float
+    mortgage_saving_year: float
+    cashback_year: float
+    dms_cost_year: float
+    total_benefit_year: float

@@ -15,9 +15,11 @@ from core.api.v1.status.service import (
 )
 from core.api.v1.status.shemas import (
     DailyResultsInSchema,
-    DailyResultsOutSchema,
     EmployeeProfileSchema,
+    GetDailyResultsOutSchema,
     LevelPrivilegesScreenSchema,
+    PersonalFinancialEffectSchema,
+    PostDailyResultsOutSchema,
     RatingDetailsScreenSchema,
     ScenarioScreenInSchema,
     ScenarioScreenOutSchema,
@@ -383,6 +385,23 @@ def build_level_privileges_screen_response(current_level: str) -> dict:
     }
     
 
+def build_personal_financial_effect_response(employee: Employee) -> dict:
+    benefit = LevelBenefit.objects.get(level=employee.level, is_active=True)
+
+    return {
+        "level": employee.level,
+        "bonus_income_year": benefit.bonus_income_year,
+        "mortgage_saving_year": benefit.mortgage_saving_year,
+        "cashback_year": benefit.cashback_year,
+        "dms_cost_year": benefit.dms_cost_year,
+        "total_benefit_year": (
+            benefit.bonus_income_year
+            + benefit.mortgage_saving_year
+            + benefit.cashback_year
+            + benefit.dms_cost_year
+        ),
+    }
+
 def get_month_bounds(target_date: date_at):
     month_start = target_date.replace(day=1)
 
@@ -528,7 +547,7 @@ def get_level_privileges(request):
 
 
 
-@router.post("/daily-results", response=DailyResultsOutSchema, auth=user_auth)
+@router.post("/daily-results", response=PostDailyResultsOutSchema, auth=user_auth)
 # @handle_service_errors
 def save_daily_results(request, data: DailyResultsInSchema):
     user = request.auth
@@ -548,15 +567,15 @@ def save_daily_results(request, data: DailyResultsInSchema):
     recalculate_employee_from_daily_results(employee, target_date=daily_result.date)
 
     return {
-        "date": str(daily_result.date),
-        "deals_count": daily_result.deals_count,
-        "credit_volume": daily_result.credit_volume,
-        "extra_products_count": daily_result.extra_products_count,
+        # "date": str(daily_result.date),
+        # "deals_count": daily_result.deals_count,
+        # "credit_volume": daily_result.credit_volume,
+        # "extra_products_count": daily_result.extra_products_count,
         "saved": True,
     }
 
 # @handle_service_errors    
-@router.get("/daily-results", response=DailyResultsOutSchema, auth=user_auth)
+@router.get("/daily-results", response=GetDailyResultsOutSchema, auth=user_auth)
 def get_daily_results(request, date: str | None = None):
     user = request.auth
     model_user = UserModels.objects.get(id=user.user_id)
@@ -579,7 +598,7 @@ def get_daily_results(request, date: str | None = None):
         "deals_count": daily_result.deals_count,
         "credit_volume": daily_result.credit_volume,
         "extra_products_count": daily_result.extra_products_count,
-        "saved": True,
+        # "saved": True,
     }
     
     
@@ -597,3 +616,20 @@ def get_employee_profile(request):
     )
 
     return build_employee_profile_response(employee)
+
+
+
+@router.get("/financial-effect", response=PersonalFinancialEffectSchema, auth=user_auth)
+@handle_service_errors
+def get_personal_financial_effect(request):
+    user = request.auth
+    model_user = UserModels.objects.get(id=user.user_id)
+    employee = model_user.employee
+
+    logger.info(
+        "Loading financial effect for employee %s (%s)",
+        employee.id,
+        employee.name,
+    )
+
+    return build_personal_financial_effect_response(employee)

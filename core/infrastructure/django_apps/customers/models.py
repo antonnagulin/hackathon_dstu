@@ -261,6 +261,23 @@ class LevelBenefit(models.Model):
         auto_now=True,
         verbose_name="Обновлено"
     )
+    
+    bonus_income_year = models.FloatField(
+        default=0.0,
+        verbose_name='Годовой доход от бонусов (руб.)'
+    )
+    mortgage_saving_year = models.FloatField(
+        default=0.0,
+        verbose_name='Годовая экономия по ипотеке (руб.)'
+    )
+    cashback_year = models.FloatField(
+        default=0.0,
+        verbose_name='Годовой кэшбэк (руб.)'
+    )
+    dms_cost_year = models.FloatField(
+        default=0.0,
+        verbose_name='Годовые затраты на ДМС (руб.)'
+    )
 
     class Meta:
         verbose_name = "Льгота уровня"

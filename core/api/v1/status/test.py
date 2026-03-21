@@ -25,7 +25,7 @@ from core.infrastructure.django_apps.customers.models import (
 GO_SERVICE_URL = getattr(settings, "GO_SERVICE_URL", "http://go-calc-service:8080")
 GO_SERVICE_TIMEOUT = getattr(settings, "GO_SERVICE_TIMEOUT", 10)
 
-router = Router(tags=["test"])
+router = Router(tags=["Status"])
 logger = logging.getLogger(__name__)
 
 
@@ -53,7 +53,7 @@ def get_active_rating_config() -> RatingConfig:
 # -------------------- GO REQUEST BUILDERS --------------------
 
 
-def build_go_request(employee: Employee, config: RatingConfig) -> dict:
+def build_go_calculate_request(employee: Employee, config: RatingConfig) -> dict:
     return {
         "fact_volume": employee.volume,
         "plan_volume": employee.volume_plan,
@@ -147,7 +147,7 @@ def call_go_finance_scenario(payload: dict) -> dict:
 # -------------------- DOMAIN LOGIC --------------------
 
 
-def update_employee(employee: Employee, result: dict):
+def update_employee_rating(employee: Employee, result: dict):
     employee.points = result["score"]
     employee.level = result["level"]
     employee.save(update_fields=["points", "level"])
@@ -182,7 +182,36 @@ def build_financial_forecast(next_level: str | None) -> dict:
     }
 
 
-def build_mobile_response(employee: Employee, result: dict, config: RatingConfig) -> dict:
+def get_level_benefit_payload(level: str | None) -> dict:
+    if not level:
+        return {
+            "income_growth_year": 0,
+            "mortgage_saving_year": 0,
+            "other_benefit_year": 0,
+            "total_benefit_year": 0,
+        }
+
+    benefit = LevelBenefit.objects.get(level=level, is_active=True)
+
+    total_benefit_year = (
+        benefit.income_growth_year
+        + benefit.mortgage_saving_year
+        + benefit.other_benefit_year
+    )
+
+    return {
+        "income_growth_year": benefit.income_growth_year,
+        "mortgage_saving_year": benefit.mortgage_saving_year,
+        "other_benefit_year": benefit.other_benefit_year,
+        "total_benefit_year": total_benefit_year,
+    }
+
+
+def build_status_screen_response(
+    employee: Employee,
+    result: dict,
+    config: RatingConfig,
+) -> dict:
     next_level_data = result.get("next_level") or {}
 
     next_level = next_level_data.get("next_level")
@@ -209,68 +238,21 @@ def build_mobile_response(employee: Employee, result: dict, config: RatingConfig
     }
 
 
-def get_level_benefit_payload(level: str | None) -> dict:
-    if not level:
-        return {
-            "income_growth_year": 0,
-            "mortgage_saving_year": 0,
-            "other_benefit_year": 0,
-            "total_benefit_year": 0,
-        }
-
-    benefit = LevelBenefit.objects.get(level=level, is_active=True)
-
-    total_benefit_year = (
-        benefit.income_growth_year
-        + benefit.mortgage_saving_year
-        + benefit.other_benefit_year
-    )
-
-    return {
-        "income_growth_year": benefit.income_growth_year,
-        "mortgage_saving_year": benefit.mortgage_saving_year,
-        "other_benefit_year": benefit.other_benefit_year,
-        "total_benefit_year": total_benefit_year,
-    }
-
-
-def build_scenario_mobile_response(
-    data: ScenarioScreenInSchema,
+def build_scenario_screen_response(
     scenario_result: dict,
     finance_result: dict,
 ) -> dict:
-    current_level = scenario_result["current"]["level"]
     scenario_level = scenario_result["scenario"]["level"]
-
-    benefit_payload = get_level_benefit_payload(scenario_level)
+    benefit = get_level_benefit_payload(scenario_level)
 
     return {
-        "current": {
-            "level": current_level,
-            "score": scenario_result["current"]["score"],
-            "bonus": finance_result["current"]["bonus"],
-        },
-        "scenario": {
-            "level": scenario_level,
-            "score": scenario_result["scenario"]["score"],
-            "bonus": finance_result["scenario"]["bonus"],
-        },
-        "delta": {
-            "score_delta": scenario_result["score_delta"],
-            "bonus_delta": finance_result["bonus_delta"],
-            "income_growth_year": benefit_payload["income_growth_year"],
-            "mortgage_saving_year": benefit_payload["mortgage_saving_year"],
-            "other_benefit_year": benefit_payload["other_benefit_year"],
-            "total_benefit_year": benefit_payload["total_benefit_year"],
-        },
-        "applied_changes": {
-            "extra_volume": data.extra_volume,
-            "extra_deals": data.extra_deals,
-            "extra_bank_share": data.extra_bank_share,
-            "extra_submitted": data.extra_submitted,
-            "extra_approved": data.extra_approved,
-            "extra_products": data.extra_products,
-        },
+        "current_level": scenario_result["current"]["level"],
+        "current_score": scenario_result["current"]["score"],
+        "scenario_level": scenario_result["scenario"]["level"],
+        "scenario_score": scenario_result["scenario"]["score"],
+        "scenario_bonus": finance_result["scenario"]["bonus"],
+        "income_growth_year": benefit["income_growth_year"],
+        "mortgage_saving_year": benefit["mortgage_saving_year"],
     }
 
 
@@ -281,7 +263,6 @@ def build_scenario_mobile_response(
 @handle_service_errors
 def get_status(request):
     user = request.auth
-
     model_user = UserModels.objects.get(id=user.user_id)
     employee = model_user.employee
     config = get_active_rating_config()
@@ -294,19 +275,18 @@ def get_status(request):
 
     validate_employee(employee)
 
-    payload = build_go_request(employee, config)
+    payload = build_go_calculate_request(employee, config)
     result = call_go_calculate(payload)
 
-    update_employee(employee, result)
+    update_employee_rating(employee, result)
 
-    return build_mobile_response(employee, result, config)
+    return build_status_screen_response(employee, result, config)
 
 
 @router.post("/scenario", response=ScenarioScreenOutSchema, auth=user_auth)
 @handle_service_errors
 def get_status_scenario(request, data: ScenarioScreenInSchema):
     user = request.auth
-
     model_user = UserModels.objects.get(id=user.user_id)
     employee = model_user.employee
     config = get_active_rating_config()
@@ -319,7 +299,7 @@ def get_status_scenario(request, data: ScenarioScreenInSchema):
 
     validate_employee(employee)
 
-    go_input = build_go_request(employee, config)
+    go_input = build_go_calculate_request(employee, config)
     go_delta = build_go_scenario_delta(data)
     finance_rules = build_finance_rules(config)
 
@@ -337,23 +317,7 @@ def get_status_scenario(request, data: ScenarioScreenInSchema):
     scenario_result = call_go_scenario(scenario_payload)
     finance_result = call_go_finance_scenario(finance_scenario_payload)
 
-    return build_scenario_mobile_response(
-        data=data,
+    return build_scenario_screen_response(
         scenario_result=scenario_result,
         finance_result=finance_result,
     )
-    
-
-def build_scenario_screen_response(scenario_result: dict, finance_result: dict) -> dict:
-    scenario_level = scenario_result["scenario"]["level"]
-    benefit = get_level_benefit_payload(scenario_level)
-
-    return {
-        "current_level": scenario_result["current"]["level"],
-        "current_score": scenario_result["current"]["score"],
-        "scenario_level": scenario_result["scenario"]["level"],
-        "scenario_score": scenario_result["scenario"]["score"],
-        "scenario_bonus": finance_result["scenario"]["bonus"],
-        "income_growth_year": benefit["income_growth_year"],
-        "mortgage_saving_year": benefit["mortgage_saving_year"],
-    }

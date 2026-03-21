@@ -162,7 +162,10 @@ class AppliedChangesSchema(Schema):
 
 
 class ScenarioScreenOutSchema(Schema):
-    current: ScenarioStateSchema
-    scenario: ScenarioStateSchema
-    delta: ScenarioDeltaSchema
-    applied_changes: AppliedChangesSchema
+    current_level: str
+    current_score: float
+    scenario_level: str
+    scenario_score: float
+    scenario_bonus: float
+    income_growth_year: float
+    mortgage_saving_year: float

@@ -116,27 +116,6 @@ class FinancialForecastSchema(Schema):
     description: str
 
 
-class StatusScreenSchema(Schema):
-    employee_id: int
-    name: str
-    level: str
-    score: float
-    next_level: str | None = None
-    next_level_points: float
-    points_to_next_level: float | None = None
-    progress_percent: float
-    financial_forecast: FinancialForecastSchema
-
-
-class ScenarioScreenInSchema(Schema):
-    extra_volume: float = 0.0
-    extra_deals: int = 0
-    extra_bank_share: float = 0.0
-    extra_submitted: int = 0
-    extra_approved: int = 0
-    extra_products: int = 0
-
-
 class ScenarioStateSchema(Schema):
     level: str
     score: float
@@ -160,12 +139,29 @@ class AppliedChangesSchema(Schema):
     extra_approved: int
     extra_products: int
 
+    
+    
+class ScenarioScreenInSchema(Schema):
+    extra_deals: int = 0
+    extra_volume: float = 0.0
+    extra_bank_share: float = 0.0
+    extra_submitted: int = 0
+    extra_approved: int = 0
+    extra_products: int = 0
+
+
+class ScenarioCurrentStatusSchema(Schema):
+    level: str
+    points_to_next_level: float
+
+
+class ScenarioResultSchema(Schema):
+    new_score: float
+    new_level: str
+    new_income: float
+    new_saving: float
+
 
 class ScenarioScreenOutSchema(Schema):
-    current_level: str
-    current_score: float
-    scenario_level: str
-    scenario_score: float
-    scenario_bonus: float
-    income_growth_year: float
-    mortgage_saving_year: float
+    current_status: ScenarioCurrentStatusSchema
+    result: ScenarioResultSchema

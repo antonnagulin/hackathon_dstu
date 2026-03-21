@@ -239,22 +239,27 @@ def build_status_screen_response(
 
 
 def build_scenario_screen_response(
+    current_status_result: dict,
     scenario_result: dict,
     finance_result: dict,
 ) -> dict:
+    current_next_level = current_status_result.get("next_level") or {}
     scenario_level = scenario_result["scenario"]["level"]
-    benefit = get_level_benefit_payload(scenario_level)
+
+    benefit = LevelBenefit.objects.get(level=scenario_level, is_active=True)
 
     return {
-        "current_level": scenario_result["current"]["level"],
-        "current_score": scenario_result["current"]["score"],
-        "scenario_level": scenario_result["scenario"]["level"],
-        "scenario_score": scenario_result["scenario"]["score"],
-        "scenario_bonus": finance_result["scenario"]["bonus"],
-        "income_growth_year": benefit["income_growth_year"],
-        "mortgage_saving_year": benefit["mortgage_saving_year"],
+        "current_status": {
+            "level": current_status_result["level"],
+            "points_to_next_level": float(current_next_level.get("missing_score") or 0),
+        },
+        "result": {
+            "new_score": float(scenario_result["scenario"]["score"]),
+            "new_level": scenario_level,
+            "new_income": float(finance_result["scenario"]["bonus"]),
+            "new_saving": float(benefit.mortgage_saving_year),
+        },
     }
-
 
 # -------------------- API --------------------
 
@@ -283,8 +288,8 @@ def get_status(request):
     return build_status_screen_response(employee, result, config)
 
 
+# @handle_service_errors
 @router.post("/scenario", response=ScenarioScreenOutSchema, auth=user_auth)
-@handle_service_errors
 def get_status_scenario(request, data: ScenarioScreenInSchema):
     user = request.auth
     model_user = UserModels.objects.get(id=user.user_id)
@@ -303,6 +308,8 @@ def get_status_scenario(request, data: ScenarioScreenInSchema):
     go_delta = build_go_scenario_delta(data)
     finance_rules = build_finance_rules(config)
 
+    current_status_result = call_go_calculate(go_input)
+
     scenario_payload = {
         "input": go_input,
         "delta": go_delta,
@@ -318,6 +325,7 @@ def get_status_scenario(request, data: ScenarioScreenInSchema):
     finance_result = call_go_finance_scenario(finance_scenario_payload)
 
     return build_scenario_screen_response(
+        current_status_result=current_status_result,
         scenario_result=scenario_result,
         finance_result=finance_result,
     )

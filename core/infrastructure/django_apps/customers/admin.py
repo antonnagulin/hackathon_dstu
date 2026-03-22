@@ -1,7 +1,7 @@
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin
 
-from .models import Employee, EmployeeDailyResult, LevelBenefit, LevelPrivilege, RatingConfig, UserModels
+from .models import Employee, EmployeeDailyResult, LevelBenefit, LevelPrivilege, MonthlyTask, RatingConfig, UserModels
 
 
 @admin.register(UserModels)
@@ -277,6 +277,58 @@ class EmployeeDailyResultAdmin(admin.ModelAdmin):
                     "deals_count",
                     "credit_volume",
                     "extra_products_count",
+                )
+            },
+        ),
+        (
+            "Служебные поля",
+            {
+                "fields": (
+                    "created_at",
+                    "updated_at",
+                )
+            },
+        ),
+    )
+    
+    
+
+
+@admin.register(MonthlyTask)
+class MonthlyTaskAdmin(admin.ModelAdmin):
+    list_display = (
+        "title",
+        "task_type",
+        "target_value",
+        "reward_points",
+        "deadline",
+        "is_active",
+        "updated_at",
+    )
+    list_filter = ("task_type", "is_active", "deadline")
+    search_fields = ("title", "description")
+    readonly_fields = ("created_at", "updated_at")
+    ordering = ("deadline", "id")
+
+    fieldsets = (
+        (
+            "Основное",
+            {
+                "fields": (
+                    "title",
+                    "description",
+                    "task_type",
+                    "is_active",
+                )
+            },
+        ),
+        (
+            "Цель и награда",
+            {
+                "fields": (
+                    "target_value",
+                    "reward_points",
+                    "deadline",
                 )
             },
         ),

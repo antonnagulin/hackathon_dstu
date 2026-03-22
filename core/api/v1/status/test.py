@@ -18,6 +18,7 @@ from core.api.v1.status.shemas import (
     EmployeeProfileSchema,
     GetDailyResultsOutSchema,
     LevelPrivilegesScreenSchema,
+    MonthlyTasksScreenSchema,
     PersonalFinancialEffectSchema,
     PostDailyResultsOutSchema,
     RatingDetailsScreenSchema,
@@ -30,6 +31,7 @@ from core.infrastructure.django_apps.customers.models import (
     EmployeeDailyResult,
     LevelBenefit,
     LevelPrivilege,
+    MonthlyTask,
     RatingConfig,
     UserModels,
 )
@@ -434,7 +436,86 @@ def recalculate_employee_from_daily_results(employee: Employee, target_date: dat
         employee.extra_products_count = aggregates["total_extra_products"] or 0
 
     employee.save()
+    
+    
+def get_month_bounds(target_date: date_at):
+    month_start = target_date.replace(day=1)
 
+    if target_date.month == 12:
+        next_month = target_date.replace(year=target_date.year + 1, month=1, day=1)
+    else:
+        next_month = target_date.replace(month=target_date.month + 1, day=1)
+
+    return month_start, next_month
+
+
+
+def get_employee_monthly_daily_aggregates(employee, target_date: date_at | None = None) -> dict:
+    target_date = target_date or timezone.localdate()
+    month_start, next_month = get_month_bounds(target_date)
+
+    aggregates = EmployeeDailyResult.objects.filter(
+        employee=employee,
+        date__gte=month_start,
+        date__lt=next_month,
+    ).aggregate(
+        total_deals=Sum("deals_count"),
+        total_volume=Sum("credit_volume"),
+        total_extra_products=Sum("extra_products_count"),
+    )
+
+    return {
+        "deals": float(aggregates["total_deals"] or 0),
+        "volume": float(aggregates["total_volume"] or 0),
+        "extra_products": float(aggregates["total_extra_products"] or 0),
+    }
+    
+def get_task_current_value(employee, task, monthly_aggregates: dict):
+    if task.task_type == "deals":
+        return monthly_aggregates["deals"]
+
+    if task.task_type == "volume":
+        return monthly_aggregates["volume"]
+
+    if task.task_type == "extra_products":
+        return monthly_aggregates["extra_products"]
+
+    if task.task_type == "bank_share":
+        return float(employee.bank_share)
+
+    return 0.0
+
+
+def calculate_task_progress_percent(current: float, target: float) -> float:
+    if target <= 0:
+        return 0.0
+    return round(min((current / target) * 100, 100), 2)
+
+
+def build_monthly_tasks_response(employee) -> dict:
+    tasks = MonthlyTask.objects.filter(is_active=True).order_by("deadline", "id")
+    monthly_aggregates = get_employee_monthly_daily_aggregates(employee)
+
+    items = []
+
+    for task in tasks:
+        current_value = get_task_current_value(employee, task, monthly_aggregates)
+        progress_percent = calculate_task_progress_percent(current_value, task.target_value)
+
+        items.append({
+            "title": task.title,
+            "description": task.description,
+            "progress_current": current_value,
+            "progress_target": task.target_value,
+            "progress_percent": progress_percent,
+            "reward_points": task.reward_points,
+            "deadline": task.deadline.isoformat(),
+            "is_completed": current_value >= task.target_value,
+        })
+
+    return {
+        "items": items,
+    }
 # -------------------- API --------------------
 
 
@@ -633,3 +714,20 @@ def get_personal_financial_effect(request):
     )
 
     return build_personal_financial_effect_response(employee)
+
+
+
+@router.get("/monthly-tasks", response=MonthlyTasksScreenSchema, auth=user_auth)
+@handle_service_errors
+def get_monthly_tasks(request):
+    user = request.auth
+    model_user = UserModels.objects.get(id=user.user_id)
+    employee = model_user.employee
+
+    logger.info(
+        "Loading monthly tasks for employee %s (%s)",
+        employee.id,
+        employee.name,
+    )
+
+    return build_monthly_tasks_response(employee)

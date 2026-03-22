@@ -239,3 +239,20 @@ class PersonalFinancialEffectSchema(Schema):
     cashback_year: float
     dms_cost_year: float
     total_benefit_year: float
+    
+    
+    
+
+class MonthlyTaskItemSchema(Schema):
+    title: str
+    description: str
+    progress_current: float
+    progress_target: float
+    progress_percent: float
+    reward_points: float
+    deadline: str
+    is_completed: bool
+
+
+class MonthlyTasksScreenSchema(Schema):
+    items: list[MonthlyTaskItemSchema]

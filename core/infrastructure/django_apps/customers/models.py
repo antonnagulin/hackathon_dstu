@@ -377,3 +377,29 @@ class EmployeeDailyResult(models.Model):
 
     def __str__(self):
         return f'{self.employee} — {self.date}'
+    
+    
+
+class MonthlyTask(models.Model):
+    TASK_TYPES = (
+        ("deals", "Deals"),
+        ("volume", "Volume"),
+        ("bank_share", "Bank Share"),
+        ("extra_products", "Extra Products"),
+    )
+
+    title = models.CharField(max_length=255)
+    description = models.TextField(blank=True, default="")
+    task_type = models.CharField(max_length=50, choices=TASK_TYPES)
+
+    target_value = models.FloatField()
+    reward_points = models.FloatField()
+
+    deadline = models.DateField()
+    is_active = models.BooleanField(default=True)
+
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return self.title

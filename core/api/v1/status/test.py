@@ -404,6 +404,19 @@ def build_personal_financial_effect_response(employee: Employee) -> dict:
         ),
     }
 
+def recalculate_employee_rating(employee: Employee):
+    config = get_active_rating_config()
+
+    payload = build_go_calculate_request(employee, config)
+    result = call_go_calculate(payload)
+
+    employee.points = result["score"]
+    employee.level = result["level"]
+    employee.save(update_fields=["points", "level"])
+
+    return result
+
+
 def get_month_bounds(target_date: date_at):
     month_start = target_date.replace(day=1)
 
@@ -645,7 +658,12 @@ def save_daily_results(request, data: DailyResultsInSchema):
         },
     )
 
-    recalculate_employee_from_daily_results(employee, target_date=daily_result.date)
+    recalculate_employee_from_daily_results(
+    employee=employee,
+    target_date=daily_result.date,
+)
+
+    recalculate_employee_rating(employee)
 
     return {
         # "date": str(daily_result.date),
@@ -654,7 +672,12 @@ def save_daily_results(request, data: DailyResultsInSchema):
         # "extra_products_count": daily_result.extra_products_count,
         "saved": True,
     }
+    
+    
 
+
+
+    
 # @handle_service_errors    
 @router.get("/daily-results", response=GetDailyResultsOutSchema, auth=user_auth)
 def get_daily_results(request, date: str | None = None):
